@@ -86,7 +86,17 @@ function uploadFileGoogleDrive($client, $filePath, $fileName, $pathName)
  */
 function checkExistsPath($service, $pathName)
 {
-    $files = $service->files->listFiles();
+    $searchQuery = [
+        "'" . MAIN_PATH_GOOGLE_DRIVE . "' in parents",
+        "trashed=false"
+    ];
+
+    $options = [
+        'q' => implode(" and ", $searchQuery)
+    ];
+
+    $files = $service->files->listFiles($options);
+
     $hasPath = false;
     $pathId = '';
 
