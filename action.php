@@ -29,10 +29,12 @@ function uploadFileServer($client, $formFile, $pathName = '')
     move_uploaded_file($fileTemp, $filePath);
 
     // Invoca função para fazer upload no Google Drive
-    uploadFileGoogleDrive($client, $filePath, $fileName, $pathName);
+    $upload = uploadFileGoogleDrive($client, $filePath, $fileName, $pathName);
 
     // Remove arquivo do servidor
     unlink($filePath);
+
+    return $upload;
 }
 
 /**
@@ -52,7 +54,9 @@ function uploadFileGoogleDrive($client, $filePath, $fileName, $pathName)
 
     $fileUpload = new Google_Service_Drive_DriveFile();
     $fileUpload->setName($fileName);
-    $fileUpload->setParents([$checkExistsPath->path_id]);
+    $fileUpload->setParents([
+        $checkExistsPath->path_id
+    ]);
 
     // Faz o upload do arquivo no Google Drive
     $uploadDrive = $service->files->create(
@@ -68,38 +72,7 @@ function uploadFileGoogleDrive($client, $filePath, $fileName, $pathName)
     // Pega informações do upload para manipular
     $fileMetadata = getFileGoogleDrive($service, $uploadDrive['id']);
 
-    // Vai mostrar na tela as informações do upload para poder salvar num banco de dados, por exemplo
-    echo '<pre>';
-    print_r($fileMetadata);
-    echo '</pre>';
-
-    return true;
-}
-
-/**
- * Cria a pasta do cliente no Google Drive
- * 
- * @param GoogleClientService $service Serviço de upload no Google Drive
- * @param string $pathName Nome da pasta no Google Drive
- * 
- * @return GoogleServiceDriveFile Retorna informações da pasta criada em um objeto
- */
-function createPathGoogleDrive($service, $pathName)
-{
-    $folder = new Google_Service_Drive_DriveFile();
-    $folder->setName($pathName);
-    $folder->setMimeType('application/vnd.google-apps.folder');
-    $folder->setParents([MAIN_PATH_GOOGLE_DRIVE]);
-
-    // Cria uma pasta no Google Drive na pasta principal
-    $folderDrive = $service->files->create(
-        $folder,
-        [
-            'mimeType' => 'application/vnd.google-apps.folder'
-        ]
-    );
-
-    return $folderDrive;
+    return $fileMetadata;
 }
 
 /**
@@ -137,6 +110,34 @@ function checkExistsPath($service, $pathName)
 }
 
 /**
+ * Cria a pasta do cliente no Google Drive
+ * 
+ * @param GoogleClientService $service Serviço de upload no Google Drive
+ * @param string $pathName Nome da pasta no Google Drive
+ * 
+ * @return GoogleServiceDriveFile Retorna informações da pasta criada em um objeto
+ */
+function createPathGoogleDrive($service, $pathName)
+{
+    $folder = new Google_Service_Drive_DriveFile();
+    $folder->setName($pathName);
+    $folder->setMimeType('application/vnd.google-apps.folder');
+    $folder->setParents([
+        MAIN_PATH_GOOGLE_DRIVE
+    ]);
+
+    // Cria uma pasta no Google Drive na pasta principal
+    $folderDrive = $service->files->create(
+        $folder,
+        [
+            'mimeType' => 'application/vnd.google-apps.folder'
+        ]
+    );
+
+    return $folderDrive;
+}
+
+/**
  * Pega informações do arquivo no Google Drive
  * @param GoogleServiceDrive $service Serviço de conexão com o Google Drive
  * @param string ID do arquivo no Google Drive
@@ -157,5 +158,7 @@ function getFileGoogleDrive($service, $fileId)
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
     $client = getClient();
-    uploadFileServer($client, $_FILES['file'], 'cliente-2');
+    $upload = uploadFileServer($client, $_FILES['file'], 'cliente-2');
+
+    print_r($upload);
 }
