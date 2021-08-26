@@ -4,7 +4,7 @@ require __DIR__ . '/vendor/autoload.php';
 require 'util.php';
 
 // Pasta principal de upload no Google Drive
-define('MAIN_PATH_GOOGLE_DRIVE', '1m7NVIkJVjXazBKPbTypCQb8DceZBjoyL');
+define('MAIN_PATH_GOOGLE_DRIVE', '<ID DA PASTA PRINCIPAL DE UPLOAD>');
 
 /**
  * Faz upload do arquivo selecionado no formulário para uma pasta do servidor local.
@@ -45,15 +45,14 @@ function uploadFileServer($client, $formFile, $pathName = '')
  */
 function uploadFileGoogleDrive($client, $filePath, $fileName, $pathName)
 {
-    // ID da pasta que deseja fazer o upload. Se deixar vazio, o arquivo será salvo na raiz do Google Drive.
     $service = new Google_Service_Drive($client);
 
-    // Verifica se existe a pasta no Google Drive
+    // Verifica se existe a pasta no Google Drive. Se não existir, cria e retorna o ID da pasta
     $checkExistsPath = checkExistsPath($service, $pathName);
 
     $fileUpload = new Google_Service_Drive_DriveFile();
     $fileUpload->setName($fileName);
-    $fileUpload->setParents([ $checkExistsPath->path_id ]);
+    $fileUpload->setParents([$checkExistsPath->path_id]);
 
     // Faz o upload do arquivo no Google Drive
     $uploadDrive = $service->files->create(
@@ -82,13 +81,15 @@ function uploadFileGoogleDrive($client, $filePath, $fileName, $pathName)
  * 
  * @param GoogleClientService $service Serviço de upload no Google Drive
  * @param string $pathName Nome da pasta no Google Drive
+ * 
+ * @return GoogleServiceDriveFile Retorna informações da pasta criada em um objeto
  */
-function createPathGoogleDrive($service, $pathName) 
+function createPathGoogleDrive($service, $pathName)
 {
     $folder = new Google_Service_Drive_DriveFile();
     $folder->setName($pathName);
     $folder->setMimeType('application/vnd.google-apps.folder');
-    $folder->setParents([ MAIN_PATH_GOOGLE_DRIVE ]);
+    $folder->setParents([MAIN_PATH_GOOGLE_DRIVE]);
 
     // Cria uma pasta no Google Drive na pasta principal
     $folderDrive = $service->files->create(
@@ -107,21 +108,24 @@ function createPathGoogleDrive($service, $pathName)
  * 
  * @param GoogleClientService $service Serviço de upload no Google Drive
  * @param string $pathName Nome da pasta no Google Drive
+ * 
+ * @return Object Retorna o ID da pasta no Google Drive se existir
  */
-function checkExistsPath($service, $pathName) {
+function checkExistsPath($service, $pathName)
+{
     $files = $service->files->listFiles();
     $hasPath = false;
     $pathId = '';
 
-    foreach($files->getFiles() as $file) {
-        if($file->mimeType === 'application/vnd.google-apps.folder' && $file->name === $pathName) {
+    foreach ($files->getFiles() as $file) {
+        if ($file->mimeType === 'application/vnd.google-apps.folder' && $file->name === $pathName) {
             $hasPath = true;
             $pathId = $file->id;
             break;
         }
     }
 
-    if(!$hasPath) {
+    if (!$hasPath) {
         $createPath = createPathGoogleDrive($service, $pathName);
         $pathId = $createPath->id;
         $hasPath = true;
@@ -137,7 +141,7 @@ function checkExistsPath($service, $pathName) {
  * @param GoogleServiceDrive $service Serviço de conexão com o Google Drive
  * @param string ID do arquivo no Google Drive
  * 
- * @return Object Objeto com informações do upload
+ * @return Object Objeto com informações do upload realizado.
  */
 function getFileGoogleDrive($service, $fileId)
 {
